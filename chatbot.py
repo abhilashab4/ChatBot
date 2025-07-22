@@ -82,7 +82,7 @@ def get_response(user_input, pdf_chain=None, session_id="default"):
             print("PDF chain error:", e)
             pdf_response = ""
 
-    if pdf_response and len(pdf_response.strip()) > 30 and "resume" not in pdf_response.lower():
+    if pdf_response and len(pdf_response.strip()) > 30 and "not in" not in pdf_response.lower():
         return pdf_response.strip()
 
     general_result = chat_with_memory.invoke(
