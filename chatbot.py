@@ -53,7 +53,7 @@ def load_pdf_and_create_chain(uploaded_pdf):
     retriever = vectorstore.as_retriever()
 
     prompt = ChatPromptTemplate.from_template(
-        """You are a helpful assistant for answering questions about a PDF.
+        """You are a helpful assistant for answering questions.
         
         Context:
         {context}
@@ -75,18 +75,17 @@ def load_pdf_and_create_chain(uploaded_pdf):
 def get_response(user_input, pdf_chain=None, session_id="default"):
     pdf_response = ""
 
-    IRRELEVANT_PHRASES = [
-        "i'm sorry", 
-        "i don't know", 
-        "not in", 
-        "unable to find", 
-        "cannot determine", 
-        "not sure", 
-        "no relevant information", 
-        "information is missing",
-        "based on the information provided",
-        "doesn't seem",
+    general_only_prompts = [
+        "who are you", "what can you do", "hello", "hi",
+        "how can you help", "help", "introduce yourself"
     ]
+
+    if any(phrase in user_input.lower() for phrase in general_only_prompts):
+        general_result = chat_with_memory.invoke(
+            {"input": user_input},
+            config={"configurable": {"session_id": session_id}}
+        )
+        return general_result.content.strip()
 
     if pdf_chain:
         try:
@@ -95,11 +94,15 @@ def get_response(user_input, pdf_chain=None, session_id="default"):
             print("PDF chain error:", e)
             pdf_response = ""
 
-    def is_irrelevant(response):
-        response_lower = response.lower()
-        return any(phrase in response_lower for phrase in IRRELEVANT_PHRASES)
+    unwanted_keywords = [
+        "unrelated",
+        "not related",
+        "doesn't seem", "not in", "not provided", "appears to", "have to inform",
+        "nothing to do", "apologize", "does not", "not contain", "contain",
+        "doesn't mention", "not mentioned", "I think", "mistake", "typo"
+    ]
 
-    if pdf_response and len(pdf_response.strip()) > 30 and not is_irrelevant(pdf_response):
+    if pdf_response and len(pdf_response.strip()) > 30 and not any(k in pdf_response.lower() for k in unwanted_keywords):
         return pdf_response.strip()
 
     general_result = chat_with_memory.invoke(
