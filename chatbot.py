@@ -75,6 +75,19 @@ def load_pdf_and_create_chain(uploaded_pdf):
 def get_response(user_input, pdf_chain=None, session_id="default"):
     pdf_response = ""
 
+    IRRELEVANT_PHRASES = [
+        "i'm sorry", 
+        "i don't know", 
+        "not in", 
+        "unable to find", 
+        "cannot determine", 
+        "not sure", 
+        "no relevant information", 
+        "information is missing",
+        "based on the information provided",
+        "doesn't seem",
+    ]
+
     if pdf_chain:
         try:
             pdf_response = pdf_chain.invoke(user_input)
@@ -82,7 +95,11 @@ def get_response(user_input, pdf_chain=None, session_id="default"):
             print("PDF chain error:", e)
             pdf_response = ""
 
-    if pdf_response and len(pdf_response.strip()) > 30 and "not in" not in pdf_response.lower():
+    def is_irrelevant(response):
+        response_lower = response.lower()
+        return any(phrase in response_lower for phrase in IRRELEVANT_PHRASES)
+
+    if pdf_response and len(pdf_response.strip()) > 30 and not is_irrelevant(pdf_response):
         return pdf_response.strip()
 
     general_result = chat_with_memory.invoke(
