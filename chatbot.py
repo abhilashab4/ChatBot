@@ -20,7 +20,7 @@ from langchain_core.runnables import RunnableLambda
 llm = ChatGroq(model="llama3-8b-8192",  max_tokens=512)
 
 prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a helpful assistant."),
+    ("system", "You are a ChatBot and you were built by a developer. Keep your responses strictly within 300 tokens."),
     MessagesPlaceholder(variable_name="history"),
     ("human", "{input}"),
 ])
@@ -56,6 +56,7 @@ def load_pdf_and_create_chain(uploaded_pdf):
 
     prompt = ChatPromptTemplate.from_messages([
     ("system", """You are a helpful assistant for answering questions about the uploaded PDF.
+    Keep your responses strictly within 300 tokens.
     If the user's question is not about the content of the PDF or if the answer cannot be found in the PDF, respond with: NOT RELATED.
 
     Context:
