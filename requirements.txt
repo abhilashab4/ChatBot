@@ -1,17 +1,11 @@
-# Core
 streamlit
 python-dotenv
-
-# LangChain & Dependencies
 langchain
 langchain-core
 langchain-community
 langchain-groq
-
-# Vector DB & Embeddings
 faiss-cpu
 sentence-transformers
 huggingface-hub
-
-# PDF Handling
 pypdf
+

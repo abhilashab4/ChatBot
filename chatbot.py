@@ -4,15 +4,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
+import tempfile
 from langchain.document_loaders import PyPDFLoader
 from langchain.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.output_parsers import StrOutputParser
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_core.runnables import RunnableLambda
+
 
 
 llm = ChatGroq(model="llama3-8b-8192")
@@ -39,7 +41,7 @@ chat_with_memory = RunnableWithMessageHistory(
     history_messages_key="history",
 )
 
-import tempfile
+
 def load_pdf_and_create_chain(uploaded_pdf):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(uploaded_pdf.read())
@@ -50,63 +52,72 @@ def load_pdf_and_create_chain(uploaded_pdf):
 
     embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vectorstore = FAISS.from_documents(docs, embedding)
-    retriever = vectorstore.as_retriever()
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 8})
 
-    prompt = ChatPromptTemplate.from_template(
-        """You are a helpful assistant for answering questions.
-        
-        Context:
-        {context}
+    prompt = ChatPromptTemplate.from_messages([
+    ("system", """You are a helpful assistant for answering questions about the uploaded PDF.
+    If the user's question is not about the content of the PDF or if the answer cannot be found in the PDF, respond with: NOT RELATED.
 
-        Question:
-        {question}
-        """
-    )
+    Context:
+    {context}
+    """),
+        MessagesPlaceholder(variable_name="history"),
+        ("human", "{input}")
+    ])
 
     chain = (
-        {"context": retriever, "question": lambda x: x}
-        | prompt
-        | llm
-        | StrOutputParser()
+    RunnableLambda(lambda x: {
+        "context": retriever.invoke(x["input"]),
+        "input": x["input"],
+        "history": x["history"]
+    })
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+    pdf_chain_with_memory = RunnableWithMessageHistory(
+        chain,
+        get_by_session_id,
+        input_messages_key="input",   
+        history_messages_key="history"
     )
 
-    return chain
+    return pdf_chain_with_memory
+
+
+def get_pdf_response(pdf_chain, user_input, session_id):
+    return pdf_chain.invoke(
+        {"input": user_input},
+        config={"configurable": {"session_id": session_id}}
+    )
+def get_general_response(user_input, session_id):
+    general_response = chat_with_memory.invoke(
+        {"input": user_input},
+        config={"configurable": {"session_id": session_id}}
+    )
+    return general_response.content.strip()
 
 def get_response(user_input, pdf_chain=None, session_id="default"):
-    pdf_response = ""
 
     general_only_prompts = [
-        "who are you", "what can you do", "hello", "hi",
+        "who are you", "what can you do", "hello", "hi","hai"
         "how can you help", "help", "introduce yourself"
     ]
 
     if any(phrase in user_input.lower() for phrase in general_only_prompts):
-        general_result = chat_with_memory.invoke(
-            {"input": user_input},
-            config={"configurable": {"session_id": session_id}}
-        )
-        return general_result.content.strip()
+        general_result = get_general_response(user_input=user_input, session_id=session_id)
+        return general_result
+    
 
     if pdf_chain:
-        try:
-            pdf_response = pdf_chain.invoke(user_input)
-        except Exception as e:
-            print("PDF chain error:", e)
-            pdf_response = ""
+        
+            pdf_response = get_pdf_response(pdf_chain=pdf_chain, user_input=user_input,session_id=session_id)
+            if "not related" not in pdf_response.strip().lower():
+                return pdf_response.strip()
+            else:
+                return get_general_response(user_input=user_input,session_id=session_id)
 
-    unwanted_keywords = [
-        "unrelated",
-        "not related",
-        "doesn't seem", "not in", "not provided", "appears to", "have to inform",
-        "nothing to do", "apologize", "does not", "not contain", "contain",
-        "doesn't mention", "not mentioned", "I think", "mistake", "typo"
-    ]
 
-    if pdf_response and len(pdf_response.strip()) > 30 and not any(k in pdf_response.lower() for k in unwanted_keywords):
-        return pdf_response.strip()
-
-    general_result = chat_with_memory.invoke(
-        {"input": user_input},
-        config={"configurable": {"session_id": session_id}}
-    )
-    return general_result.content.strip()
+    general_result = get_general_response(user_input=user_input, session_id=session_id)
+    return general_result

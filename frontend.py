@@ -37,3 +37,4 @@ if user_query:
             response = get_response(user_query, st.session_state.pdf_chain, st.session_state.session_id)
             st.markdown(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
+
