@@ -17,7 +17,7 @@ from langchain_core.runnables import RunnableLambda
 
 
 
-llm = ChatGroq(model="llama3-8b-8192",  max_tokens=150)
+llm = ChatGroq(model="llama3-8b-8192",  max_tokens=512)
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", "You are a helpful assistant."),
