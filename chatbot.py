@@ -17,7 +17,7 @@ from langchain_core.runnables import RunnableLambda
 
 
 
-llm = ChatGroq(model="llama3-8b-8192")
+llm = ChatGroq(model="llama3-8b-8192",  max_tokens=150)
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", "You are a helpful assistant."),
@@ -52,7 +52,7 @@ def load_pdf_and_create_chain(uploaded_pdf):
 
     embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vectorstore = FAISS.from_documents(docs, embedding)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 8})
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
 
     prompt = ChatPromptTemplate.from_messages([
     ("system", """You are a helpful assistant for answering questions about the uploaded PDF.
