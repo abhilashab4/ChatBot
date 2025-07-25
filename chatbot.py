@@ -111,12 +111,14 @@ tools = [
     Tool(
         name="NewsTool",
         func=get_news,
-        description="Use this tool to get the latest news."
+        description="Use this tool to get the latest news.",
+        return_direct=True
     ),
     Tool(
         name="WeatherTool",
         func=lambda location: get_weather(location),
-        description="Use this tool to get the current weather for a location. Input should be a location name."
+        description="Use this tool to get the current weather for a location. Input should be a location name.",
+        return_direct=True
     )
 ]
 
