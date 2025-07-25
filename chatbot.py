@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from langchain.agents import Tool, AgentExecutor, initialize_agent, AgentType
 import tempfile
 from langchain.document_loaders import PyPDFLoader
 from langchain.vectorstores import FAISS
