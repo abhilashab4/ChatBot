@@ -17,7 +17,7 @@ from langchain_core.runnables import RunnableLambda
 
 
 
-llm = ChatGroq(model="llama3-8b-8192",  max_tokens=512)
+llm = ChatGroq(model="llama3-8b-8192",  max_tokens=1024)
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", "You are a ChatBot and you were built by a developer. Keep your responses strictly within 300 tokens."),
@@ -99,6 +99,26 @@ def get_general_response(user_input, session_id):
     )
     return general_response.content.strip()
 
+
+def get_news(_input: str):
+    return "📰 Top News: AI is transforming industries faster than expected."
+
+def get_weather(location="Kasaragod"):
+    return f"⛅ Current weather in {location}: 29°C, partly cloudy."
+
+tools = [
+    Tool(
+        name="NewsTool",
+        func=get_news,
+        description="Use this tool to get the latest news."
+    ),
+    Tool(
+        name="WeatherTool",
+        func=lambda location: get_weather(location),
+        description="Use this tool to get the current weather for a location. Input should be a location name."
+    )
+]
+
 def get_response(user_input, pdf_chain=None, session_id="default"):
 
     general_only_prompts = [
@@ -109,7 +129,23 @@ def get_response(user_input, pdf_chain=None, session_id="default"):
     if any(phrase in user_input.lower() for phrase in general_only_prompts):
         general_result = get_general_response(user_input=user_input, session_id=session_id)
         return general_result
+        
+    if "news" in user_input.lower() or "weather" in user_input.lower() or "temperature" in user_input.lower():
+        try:
+            agent_executor = initialize_agent(
+            tools,
+            llm,
+            agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+            verbose=True,
+            handle_parsing_errors=True
+            )
+            agent_response = agent_executor.run(user_input)
+            return agent_response.strip()
+        except Exception as e:
+            return f"Agent error: {e}"    
+
     
+
 
     if pdf_chain:
         
