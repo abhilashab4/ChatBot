@@ -21,7 +21,7 @@ from langchain_core.runnables import RunnableLambda
 llm = ChatGroq(model="llama3-8b-8192",  max_tokens=1024)
 
 prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a ChatBot and you were built by a developer. Keep your responses strictly within 300 tokens."),
+    ("system", "You are a ChatBot and you were built by a developer. Keep your responses strictly within 300 tokens. Keep the responses brief."),
     MessagesPlaceholder(variable_name="history"),
     ("human", "{input}"),
 ])
